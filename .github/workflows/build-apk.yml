@@ -1,0 +1,188 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.5'
+        channel: 'stable'
+        cache: true
+
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      working-directory: frontend
+
+    - name: Verify Flutter setup
+      run: flutter doctor
+      working-directory: frontend
+
+    - name: Generate build number
+      id: build_number
+      run: |
+        BUILD_NUMBER=${{ github.run_number }}
+        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+        echo "APP_VERSION=1.0.$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+    - name: Build Debug APK
+      run: |
+        flutter build apk --debug \
+          --build-name="1.0.${{ steps.build_number.outputs.BUILD_NUMBER }}" \
+          --build-number="${{ steps.build_number.outputs.BUILD_NUMBER }}"
+      working-directory: frontend
+
+    - name: Build Release APK
+      run: |
+        flutter build apk --release \
+          --build-name="1.0.${{ steps.build_number.outputs.BUILD_NUMBER }}" \
+          --build-number="${{ steps.build_number.outputs.BUILD_NUMBER }}"
+      working-directory: frontend
+
+    - name: Build App Bundle (for Play Store)
+      run: |
+        flutter build appbundle --release \
+          --build-name="1.0.${{ steps.build_number.outputs.BUILD_NUMBER }}" \
+          --build-number="${{ steps.build_number.outputs.BUILD_NUMBER }}"
+      working-directory: frontend
+
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-apk
+        path: frontend/build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 30
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-apk
+        path: frontend/build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30
+
+    - name: Upload App Bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-bundle
+        path: frontend/build/app/outputs/bundle/release/app-release.aab
+        retention-days: 30
+
+    - name: Create Release (on main branch push)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v1.0.${{ steps.build_number.outputs.BUILD_NUMBER }}
+        name: Roofing Business App v1.0.${{ steps.build_number.outputs.BUILD_NUMBER }}
+        body: |
+          ## 🏠 Roofing Business Management App
+
+          ### 📱 **What's New**
+          - Complete job scheduling and calendar management
+          - Unified messaging hub (SMS, Email, WhatsApp)
+          - Smart checklists with photo support
+          - Analytics dashboard with business insights
+          - AI-powered assistance and automation
+          - Materials inventory management
+          - Subscription management (Stripe integration)
+
+          ### 📲 **Installation Instructions**
+
+          **Option 1: Install APK Directly**
+          1. Download `roofing-business-app-release.apk` below
+          2. On your Android device, go to Settings > Security
+          3. Enable "Install from unknown sources"
+          4. Open the APK file to install
+
+          **Option 2: Scan QR Code**
+          - The QR code in the assets will take you directly to the download
+
+          ### 🔧 **System Requirements**
+          - Android 5.0 (API level 21) or higher
+          - Minimum 50MB storage space
+          - Internet connection for full functionality
+
+          ### 🚀 **Features**
+          ✅ User authentication and profiles
+          ✅ Job scheduling with Google Calendar sync
+          ✅ Customer communication hub
+          ✅ Progress tracking with checklists
+          ✅ Business analytics and reporting
+          ✅ Inventory management
+          ✅ AI-powered assistance
+          ✅ Push notifications and reminders
+
+          ### ⚠️ **Setup Required**
+          - You'll need to set up the backend server for full functionality
+          - Configure your Firebase project for notifications
+          - Update API endpoints in app settings
+
+          ---
+          Built with ❤️ for roofing professionals
+
+        files: |
+          frontend/build/app/outputs/flutter-apk/app-release.apk
+          frontend/build/app/outputs/bundle/release/app-release.aab
+
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate QR Code
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qrencode
+        echo "https://github.com/${{ github.repository }}/releases/latest" | qrencode -o qrcode.png
+
+    - name: Upload QR Code as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: install-qr-code
+        path: qrcode.png
+        retention-days: 30
+
+  build-web:
+    runs-on: ubuntu-latest
+    needs: build-apk
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.5'
+        channel: 'stable'
+        cache: true
+
+    - name: Get Flutter dependencies
+      run: flutter pub get
+      working-directory: frontend
+
+    - name: Build Web App
+      run: flutter build web --web-renderer canvaskit
+      working-directory: frontend
+
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: frontend/build/web
