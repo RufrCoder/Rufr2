@@ -1,0 +1,37 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'README.md', 'docs/**', '**.md' ]
+  workflow_dispatch:
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install documentation tools
+      run: npm install -g @marp-team/marp-cli
+
+    - name: Create documentation site
+      run: |
+        mkdir -p docs-site
+        cp README.md docs-site/index.md
+        echo "# Installation Guide" > docs-site/install.md
+        cat BUILD_APK.md >> docs-site/install.md
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs-site
+        destination_dir: docs
