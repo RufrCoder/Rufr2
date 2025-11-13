@@ -71,18 +71,35 @@ A comprehensive, easy-to-use, minimalistic business management application desig
 - **SSL**: HTTPS with security headers
 - **Monitoring**: Health checks and logging
 
-## 🚀 Quick Start
+## 📱 **⚡ QUICK START - Install Now!**
+
+### 🚀 **Option 1: Download & Install APK**
+1. **[📥 Click Here to Download Latest APK](https://github.com/YOUR_USERNAME/Rufr2/releases/latest)**
+2. Enable "Install from unknown sources" on Android
+3. Open the APK file and install
+4. Launch the app - you're ready to go! 🎉
+
+### 🌐 **Option 2: Try Web Version**
+**[👉 Open Web App](https://YOUR_USERNAME.github.io/Rufr2/)**
+
+### 📋 **System Requirements**
+- Android 5.0+ (API level 21+)
+- 50MB storage space
+- Internet connection
+
+---
+
+## 🛠 **For Developers - Full Setup**
 
 ### Prerequisites
 - Python 3.11+
 - Flutter 3.0+
 - PostgreSQL 15+
 - Redis 7+
-- Node.js 16+ (for some tools)
 
 ### 1. Clone and Setup
 ```bash
-git clone <repository-url>
+git clone https://github.com/YOUR_USERNAME/Rufr2.git
 cd Rufr2
 ```
 
@@ -121,8 +138,8 @@ cd frontend
 # Install Flutter dependencies
 flutter pub get
 
-# Run app
-flutter run -d web-server --web-port 3000
+# Build APK for testing
+flutter build apk --debug
 ```
 
 ### 5. Docker Deployment (Recommended)
